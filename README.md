@@ -2,6 +2,13 @@
 
 _Repository of Team IriSight competing in the CRO 2026, Future Engineers category._
 
+> **International update in progress:** Most of this root README still
+> describes the National Competition robot. The International robot has been
+> mechanically rebuilt and uses different sensing hardware. The National
+> Jetson programs are preserved as migration references; they are not the
+> current International control software. See [`src/`](src/) for migration
+> status and [`CHANGELOG.md`](CHANGELOG.md) for confirmed changes.
+
 
 <div align="center">
   <img src="./media/banner.png" width="420" alt="IriSight project banner">
@@ -110,19 +117,17 @@ This repository is organized as follows:
 ├── 📁 media                    # Project banner and progress photos
 │
 ├── 📁 models                   # 3D design files for the robot's printed components
-│   ├── 📁 STEP_file             # Editable CAD source files
-│   ├── 📁 STL_file              # Print-ready mesh files
-│   └── 📁 png                   # Renders and engineering blueprints
+│   └── 📁 legacy_national       # Archived National CAD and renders
 │
 ├── 📁 schemes                  # Schematics and electrical documentation
-│   ├── 📄 WRO_electrical_diagram.drawio  # Editable wiring/power diagram source
-│   └── 📁 photos                # Photos and exported diagrams
+│   └── 📁 legacy_national       # Archived National diagrams and component photos
 │
 ├── 📁 src                      # Main source code for the robot
 │   ├── 📁 ai_model              # YOLOv8n weights and object-detection docs
-│   ├── 📁 helper_function       # BNO055 IMU driver, calibration data, ultrasonic firmware
-│   ├── 📁 obs_challenge         # Obstacle Challenge control programs (CW/CCW)
-│   └── 📁 open_challenge        # Open Challenge control programs (CW/CCW)
+│   ├── 📁 main_controller       # Jetson programs, sensors, and configuration
+│   └── 📁 microcontroller       # Current ESP32 firmware and legacy reference
+│
+├── 📁 other                    # Engineering Journal and testing evidence
 │
 ├── 📁 t-photos                 # Official and informal team photos
 │
@@ -131,6 +136,7 @@ This repository is organized as follows:
 │
 ├── 📁 video                    # Link(s) to challenge demonstration videos
 │
+├── 📄 CHANGELOG.md             # National-to-International milestone changes
 ├── 📄 LICENSE.txt              # MIT License
 └── 📄 README.md                # Main documentation for the project
 ```
@@ -255,7 +261,7 @@ IriSight is a self-driving LEGO/3D-printed chassis robot built for WRO Future En
 ### System architecture
 
 <div align="center">
-<img src="./schemes/photos/system_architecture.jpg" width="700" alt="System architecture">
+<img src="./schemes/legacy_national/photos/system_architecture.jpg" width="700" alt="National system architecture">
 </div>
 
 | Flow | Summary |
@@ -295,21 +301,21 @@ Once the chassis, steering, and drivetrain could be assembled and rolled by hand
 Each finalized 3D-printed part has a full blueprint sheet (orthographic views, dimensions, material, volume, and mass), generated from the final CAD model:
 
 <div align="center">
-  <img src="./models/png/JetsonAndBattery_blueprint.png" width="700" alt="Jetson and Battery Container engineering blueprint">
+  <img src="./models/legacy_national/png/JetsonAndBattery_blueprint.png" width="700" alt="National Jetson and Battery Container engineering blueprint">
   <p><em>Jetson &amp; Battery Container — final blueprint (V3)</em></p>
 </div>
 
 <div align="center">
-  <img src="./models/png/MotorMount_blueprint.png" width="700" alt="Motor Mount engineering blueprint">
+  <img src="./models/legacy_national/png/MotorMount_blueprint.png" width="700" alt="National Motor Mount engineering blueprint">
   <p><em>Rear Motor Mount — final blueprint (V4)</em></p>
 </div>
 
 <div align="center">
-  <img src="./models/png/RealSense_blueprint.png" width="700" alt="RealSense Camera Mount engineering blueprint">
+  <img src="./models/legacy_national/png/RealSense_blueprint.png" width="700" alt="National RealSense Camera Mount engineering blueprint">
   <p><em>RealSense Camera Mount — final blueprint (V2)</em></p>
 </div>
 
-**Full detail for every version above** — renders, STL/STEP files, and final engineering blueprints with dimensions and material properties — is in [`models/README.md`](models/README.md).
+**Full detail for every National version above** — renders, STL/STEP files, and engineering blueprints — is in [`models/legacy_national/`](models/legacy_national/).
 
 ## Mobility and mechanical design
 
@@ -335,7 +341,7 @@ One DC motor drives two rear wheels. Its output passes through a two-gear transm
 
 ### Parallel steering 
 
-<img src="./schemes/photos/steering.gif" alt="Parallel steering" width="600">
+<img src="./schemes/legacy_national/photos/steering.gif" alt="National parallel steering" width="600">
 
 The two front LEGO SPIKE `39367` wheels are steered by a larger servo through a LEGO parallel linkage. Ackermann steering was the original plan, but a suitable LEGO mechanism could not be completed within the available development time. The parallel mechanism was selected for the current vehicle; the final documentation will compare its geometry, steering play, turning radius, build complexity, and tire scrub with the attempted Ackermann design.
 
@@ -343,12 +349,12 @@ The two front LEGO SPIKE `39367` wheels are steered by a larger servo through a 
 
 <table width="100%">
   <tr>
-    <td width="50%" align="center"><img src="./models/png/MotorMountV2.png" width="100%"><br><sub>Motor Mount V2 — vertical-axis LEGO arms (failed fit test)</sub></td>
-    <td width="50%" align="center"><img src="./models/png/MotorMountV4.png" width="100%"><br><sub>Motor Mount V4 — reoriented arms + electronics shelf (final)</sub></td>
+    <td width="50%" align="center"><img src="./models/legacy_national/png/MotorMountV2.png" width="100%"><br><sub>National Motor Mount V2 — vertical-axis LEGO arms (failed fit test)</sub></td>
+    <td width="50%" align="center"><img src="./models/legacy_national/png/MotorMountV4.png" width="100%"><br><sub>National Motor Mount V4 — reoriented arms + electronics shelf</sub></td>
   </tr>
 </table>
 
-The full print → test-fit → fix history for every part is in the [Our engineering journey](#our-engineering-journey) table and in [`models/README.md`](models/README.md). The single largest lesson from that history came from the Motor Mount: V2's vertical-axis LEGO arms looked correct in CAD but, once test-fit on the real robot, misaligned with the front-wheel/steering assembly and affected turning. Reorienting the arms' axis in V3 (not just resizing them) is what actually fixed it — a reminder that a directional/alignment problem needs a geometry change, not a dimensional tweak. That is also why every structural part in this project is physically printed and test-fit on the robot before being called final, rather than approved from the CAD viewport alone.
+The National print → test-fit → fix history is preserved in the [Our engineering journey](#our-engineering-journey) table and in [`models/legacy_national/`](models/legacy_national/). The rebuilt International design will be documented separately after its CAD is added.
 
 **Detailed evidence:** [mechanical design, calculations, CAD, assembly, and validation](models/)
 
@@ -356,7 +362,7 @@ The full print → test-fit → fix history for every part is in the [Our engine
 
 ### Power architecture
 
-<img src="./schemes/photos/PCB_Schematics.png" alt="Power architecture" width="800">
+<img src="./schemes/legacy_national/photos/PCB_Schematics.png" alt="National power architecture reference" width="800">
 
 The vehicle uses two battery domains: one battery supplies the Jetson and its logic/sensing system, while a second battery supplies the motor-driver side. A regulator provides the required stable voltage. Exact battery, regulator, motor-driver, connector, protection, and current ratings are still being identified and will be verified against measured typical and peak current.
 
@@ -374,67 +380,67 @@ The vehicle uses two battery domains: one battery supplies the Jetson and its lo
 
 | Component <img width=150 height=0> | Exact model <img width=250 height=0> | Interface <img width=100 height=0> | Purpose <img width=150 height=0> | Details <img width=100 height=0> |
 | :--- | :--- | :--- | :--- | :--- |
-| <p align="center"><img src="./schemes/photos/jetson.png" width="130"></p> | NVIDIA Jetson Orin Nano | NaN | Main processing | [LINK](https://www.amazon.com/dp/B0BZJTQ5YP) |
+| <p align="center"><img src="./schemes/legacy_national/photos/jetson.png" width="130"></p> | NVIDIA Jetson Orin Nano | NaN | Main processing | [LINK](https://www.amazon.com/dp/B0BZJTQ5YP) |
 
 ### Custom ESP32 Board
 
 | Component <img width=150 height=0> | Exact model <img width=250 height=0> | Interface <img width=100 height=0> | Purpose <img width=150 height=0> | Details <img width=100 height=0> |
 | :--- | :--- | :--- | :--- | :--- |
-| <p align="center"><img src="./schemes/photos/custom_esp32_board.png" width="130"></p> | ESP32 WROOM Chip | Serial | Actuator control | [LINK](https://www.amazon.com/DORHEA-ESP-WROOM-32D-Bluetooth-integrates-ESP32-D0WD/dp/B08XXH9RMT?th=1) |
+| <p align="center"><img src="./schemes/legacy_national/photos/custom_esp32_board.png" width="130"></p> | ESP32 WROOM Chip | Serial | Actuator control | [LINK](https://www.amazon.com/DORHEA-ESP-WROOM-32D-Bluetooth-integrates-ESP32-D0WD/dp/B08XXH9RMT?th=1) |
 
 ### Motor Driver
 
 | Component <img width=150 height=0> | Exact model <img width=250 height=0> | Interface <img width=100 height=0> | Purpose <img width=150 height=0> | Details <img width=100 height=0> |
 | :--- | :--- | :--- | :--- | :--- |
-| <p align="center"><img src="./schemes/photos/TB6612FNG.png" width="130"></p> | TB6612FNG | PWM | Drive-motor control | [LINK](https://www.amazon.com/Sparkfun-PID-14451-Motor-Driver/dp/B01MF67DX6) |
+| <p align="center"><img src="./schemes/legacy_national/photos/TB6612FNG.png" width="130"></p> | TB6612FNG | PWM | Drive-motor control | [LINK](https://www.amazon.com/Sparkfun-PID-14451-Motor-Driver/dp/B01MF67DX6) |
 
 ### Steering Servo
 
 | Component <img width=150 height=0> | Exact model <img width=250 height=0> | Interface <img width=100 height=0> | Purpose <img width=150 height=0> | Details <img width=100 height=0> |
 | :--- | :--- | :--- | :--- | :--- |
-| <p align="center"><img src="./schemes/photos/servo.jpg" width="130"></p> | LD-1501MG Servo | PWM | Front steering | [LINK](https://www.ebay.com/itm/362680017196) |
+| <p align="center"><img src="./schemes/legacy_national/photos/servo.jpg" width="130"></p> | LD-1501MG Servo | PWM | Front steering | [LINK](https://www.ebay.com/itm/362680017196) |
 
 ### D455
 
 | Component <img width=150 height=0> | Exact model <img width=250 height=0> | Interface <img width=100 height=0> | Purpose <img width=150 height=0> | Details <img width=100 height=0> |
 | :--- | :--- | :--- | :--- | :--- |
-| <p align="center"><img src="./schemes/photos/realsense.png" width="130"></p> | Intel RealSense D455 | USB | Depth perception | [LINK](https://www.amazon.com/dp/B08KJCRCGG?) |
+| <p align="center"><img src="./schemes/legacy_national/photos/realsense.png" width="130"></p> | Intel RealSense D455 | USB | Depth perception | [LINK](https://www.amazon.com/dp/B08KJCRCGG?) |
 
 ### IMU
 
 | Component <img width=150 height=0> | Exact model <img width=250 height=0> | Interface <img width=100 height=0> | Purpose <img width=150 height=0> | Details <img width=100 height=0> |
 | :--- | :--- | :--- | :--- | :--- |
-| <p align="center"><img src="./schemes/photos/IMU.png" width="130"></p> | BNO055 | I²C | Relative yaw | [LINK](https://bdelectronics.xyz/product/bno055-intelligent-9axis-attitude-sensor-module) |
+| <p align="center"><img src="./schemes/legacy_national/photos/IMU.png" width="130"></p> | BNO055 | I²C | Relative yaw | [LINK](https://bdelectronics.xyz/product/bno055-intelligent-9axis-attitude-sensor-module) |
 
 ### Left/Right Ultrasonic
 
 | Component <img width=150 height=0> | Exact model <img width=250 height=0> | Interface <img width=100 height=0> | Purpose <img width=150 height=0> | Details <img width=100 height=0> |
 | :--- | :--- | :--- | :--- | :--- |
-| <p align="center"><img src="./schemes/photos/ultrasonic.jpg" width="130"></p> | Generic HC-SR04 ultrasonic sensors | GPIO | Detect Wall | [LINK](https://www.amazon.com/MTDELE-HC-SR04-Ultrasonic-Mounting-Bracket/dp/B0G6ZDBTWR?) |
+| <p align="center"><img src="./schemes/legacy_national/photos/ultrasonic.jpg" width="130"></p> | Generic HC-SR04 ultrasonic sensors | GPIO | Detect Wall | [LINK](https://www.amazon.com/MTDELE-HC-SR04-Ultrasonic-Mounting-Bracket/dp/B0G6ZDBTWR?) |
 
 ### Jetson Battery
 
 | Component <img width=150 height=0> | Exact model <img width=250 height=0> | Interface <img width=100 height=0> | Purpose <img width=150 height=0> | Details <img width=100 height=0> |
 | :--- | :--- | :--- | :--- | :--- |
-| <p align="center"><img src="./schemes/photos/battery.jpg" width="130"></p> | TCB 1100mAh 3S 25C battery | Power | Logic power | [LINK](https://rcdrone.top/products/tcb-2s-3s-4s-5s-6s-7s-8s-1100mah-25c-lipo-battery-with-xt60-plug-for-rc-planes-fpv-drones-helicopters-cars) |
+| <p align="center"><img src="./schemes/legacy_national/photos/battery.jpg" width="130"></p> | TCB 1100mAh 3S 25C battery | Power | Logic power | [LINK](https://rcdrone.top/products/tcb-2s-3s-4s-5s-6s-7s-8s-1100mah-25c-lipo-battery-with-xt60-plug-for-rc-planes-fpv-drones-helicopters-cars) |
 
 ### Motor Battery
 
 | Component <img width=150 height=0> | Exact model <img width=250 height=0> | Interface <img width=100 height=0> | Purpose <img width=150 height=0> | Details <img width=100 height=0> |
 | :--- | :--- | :--- | :--- | :--- |
-| <p align="center"><img src="./schemes/photos/battery.jpg" width="130"></p> | TCB 1100mAh 3S 25C battery | Power | Actuator power | [LINK](https://rcdrone.top/products/tcb-2s-3s-4s-5s-6s-7s-8s-1100mah-25c-lipo-battery-with-xt60-plug-for-rc-planes-fpv-drones-helicopters-cars) |
+| <p align="center"><img src="./schemes/legacy_national/photos/battery.jpg" width="130"></p> | TCB 1100mAh 3S 25C battery | Power | Actuator power | [LINK](https://rcdrone.top/products/tcb-2s-3s-4s-5s-6s-7s-8s-1100mah-25c-lipo-battery-with-xt60-plug-for-rc-planes-fpv-drones-helicopters-cars) |
 
 ### Buck-Boost Converter at 11V
 
 | Component <img width=150 height=0> | Exact model <img width=250 height=0> | Interface <img width=100 height=0> | Purpose <img width=150 height=0> | Details <img width=100 height=0> |
 | :--- | :--- | :--- | :--- | :--- |
-| <p align="center"><img src="./schemes/photos/converter_11V.jpg" width="130"></p> | XL4016 300W buck-boost converter | Power | Actuator power | [LINK](https://ampere-electronics.com/product/xl4016-dc-dc-step-down-converter-module-12a-300w/) |
+| <p align="center"><img src="./schemes/legacy_national/photos/converter_11V.jpg" width="130"></p> | XL4016 300W buck-boost converter | Power | Actuator power | [LINK](https://ampere-electronics.com/product/xl4016-dc-dc-step-down-converter-module-12a-300w/) |
 
 ### Buck Converter at 5V
 
 | Component <img width=150 height=0> | Exact model <img width=250 height=0> | Interface <img width=100 height=0> | Purpose <img width=150 height=0> | Details <img width=100 height=0> |
 | :--- | :--- | :--- | :--- | :--- |
-| <p align="center"><img src="./schemes/photos/converter_5V.jpg" width="130"></p> | XL4015 50W buck converter | Power | Actuator power | [LINK](https://www.jacobsparts.com/items/DCMOD-B) |
+| <p align="center"><img src="./schemes/legacy_national/photos/converter_5V.jpg" width="130"></p> | XL4015 50W buck converter | Power | Actuator power | [LINK](https://www.jacobsparts.com/items/DCMOD-B) |
 
 
 ### Sensor placement and calibration
@@ -452,15 +458,17 @@ The vehicle uses two battery domains: one battery supplies the Jetson and its lo
 
 ### Architecture and communication
 
-The current Open Challenge system runs on the Jetson. It reads the RealSense D455 and BNO055, calculates steering and speed, and sends `DRIVE <steerDeg> <speed>` commands to the ESP32 through a 115200-baud serial connection. The ESP32-side firmware that converts these commands into motor-driver and steering-servo signals still needs to be added to the repository.
+The table below describes the preserved National Competition controller. The
+current International Jetson source has not yet been copied into this
+repository. The current ESP32 firmware receives `DRIVE <steerDeg> <speed>`
+commands through a 115200-baud serial connection.
 
 | **Module** | **Responsibility** | **Inputs** | **Outputs** |
 |---|---|---|---|
-| [`src/clockWise.py`](https://github.com/WRO-2026-AUPP/WRO_IriSight/blob/main/src/clockWise.py) | Left-wall depth following with counter-clockwise yaw checkpoints | D455 depth/color, BNO055 yaw | ESP32 drive command, web diagnostics |
-| [`src/counterClockWise.py`](https://github.com/WRO-2026-AUPP/WRO_IriSight/blob/main/src/counterClockWise.py) | Right-wall depth following with clockwise yaw checkpoints | D455 depth/color, BNO055 yaw | ESP32 drive command, web diagnostics |
-| `src/bno055_yaw.py` | BNO055 yaw reading, calibration, and relative-heading tracking | BNO055, `bno055_calibration.json` | Relative yaw and calibration status |
-| `bno055_calibration.json` | Stores the saved BNO055 calibration offsets used to restore sensor calibration | Saved calibration values | Calibration data for `bno055_yaw.py` |
-| ESP32 firmware | Receives Jetson drive commands and controls the motors and steering servo | Jetson serial command | Motor-driver and servo control |
+| [`src/main_controller/legacy_national/open_challenge/clockWise.py`](src/main_controller/legacy_national/open_challenge/clockWise.py) | National left-wall depth following | D455 depth/color, BNO055 yaw | ESP32 drive command, web diagnostics |
+| [`src/main_controller/legacy_national/open_challenge/counterClockWise.py`](src/main_controller/legacy_national/open_challenge/counterClockWise.py) | National right-wall depth following | D455 depth/color, BNO055 yaw | ESP32 drive command, web diagnostics |
+| [`src/main_controller/legacy_national/sensors/bno055_yaw.py`](src/main_controller/legacy_national/sensors/bno055_yaw.py) | National BNO055 yaw reading and calibration | BNO055, saved calibration | Relative yaw and calibration status |
+| [`src/microcontroller/firmware/firmware.ino`](src/microcontroller/firmware/firmware.ino) | Current motor and steering control | Jetson serial command | TB6612FNG and MG996R control |
 
 ### Open Challenge
 
@@ -684,21 +692,24 @@ For the current Open Challenge, the D455 depth and BNO055 yaw enter the Jetson c
 **Software/tools:**
 - NVIDIA Jetson Orin Nano flashed with JetPack (Ubuntu 22.04 LTS) and Python 3
 - Intel RealSense SDK (`librealsense`) so `pyrealsense2` can talk to the D455
-- Arduino IDE (or `arduino-cli`) with the `ESP32Servo` library, to flash [`src/helper_function/ultrasonic_arduino_v2.ino`](src/helper_function/ultrasonic_arduino_v2.ino) onto the ESP32
+- Arduino IDE (or `arduino-cli`) with the `ESP32Servo` library, to flash [`src/microcontroller/firmware/firmware.ino`](src/microcontroller/firmware/firmware.ino) onto the ESP32
 - The Python packages listed in [Software Installation](#software-installation) below
 - `git`, to clone this repository
 
 ### Mechanical assembly
 
 1. Build the LEGO Technic chassis with the parallel front-steering linkage and rear drive shaft described in [Mobility and mechanical design](#mobility-and-mechanical-design).
-2. Print the three finalized structural parts from [`models/`](models/) at the settings in [`models/README.md`](models/README.md#-print-settings) (PLA, 0.2 mm layers, 20–30% infill): the **Jetson & Battery Container (V3)**, **Rear Motor Mount (V4)**, and **RealSense Camera Mount (V2)**.
+2. The former National print settings and parts are archived under [`models/legacy_national/`](models/legacy_national/). They do not describe the rebuilt International robot.
 3. Pin all three onto the chassis using their LEGO-compatible mounting arms — no screws or brackets are needed for the printed parts themselves.
 4. Mount the rear DC motor in the Motor Mount V4 cradle, and use its flat top plate as the shelf for the ESP32 board and buck converter.
 5. Mount the two HC-SR04 ultrasonics facing outward on the left/right sides, and the BNO055 near chassis center, away from the motor and high-current wiring — see [Sensor placement and calibration](#sensor-placement-and-calibration).
 
 ### Wiring and power-on
 
-Wire every component exactly as shown in the diagram embedded in [Power architecture](#power-architecture) (full source in [`schemes/`](schemes/)), keeping the Jetson/logic battery and the motor/actuator battery on their own separate circuits — do not tie their grounds/rails together except where the diagram shows a shared reference. Double-check the TB6612FNG (IN1=D26, IN2=D25, PWM=D33), servo (D17), and ultrasonic pins (left TRIG=D13/ECHO=D39, right TRIG=D4/ECHO=D16) against the ESP32 firmware before powering on.
+The existing power diagram is a National reference and must be updated before
+it is treated as the final International wiring guide. The confirmed current
+actuator pins are TB6612FNG IN1=GPIO25, IN2=GPIO26 and PWM=GPIO33, with the
+MG996R servo signal on GPIO18. The former ultrasonic connections are unused.
 
 Recommended first power-on order: (1) connect the Jetson's battery and confirm the Jetson boots normally with the D455 and BNO055 enumerated; (2) flash and power the ESP32 on its own USB link first and confirm it prints `ESP32 ready` over serial without the motor battery connected; (3) only then connect the motor/actuator battery, and immediately confirm the wheels are off the ground or the vehicle is on a stand before sending any `DRIVE` command.
 
@@ -763,30 +774,32 @@ If the calibration file is missing or invalid, the program will display a warnin
 
 ### Start an Autonomous Run
 
-Select the appropriate control program based on the competition challenge and driving direction. Ensure that the Jetson Orin Nano, D455, BNO055, and ESP32 are connected and ready before starting the autonomous run.
+The commands below refer to the preserved National programs and must not be used
+to operate the rebuilt robot. They will be replaced after the current
+International programs are copied from the Jetson.
 
 #### 1. Open Challenge — Clockwise
 
 ```bash
-python3 src/clockWise.py
+python3 src/main_controller/legacy_national/open_challenge/clockWise.py
 ```
 
 #### 2. Open Challenge — Counter Clockwise
 
 ```bash
-python3 src/counterClockWise.py
+python3 src/main_controller/legacy_national/open_challenge/counterClockWise.py
 ```
 
 #### 3. Obstacle Avoidance Challenge — Clockwise
 
 ```bash
-python3 src/obs_clockwise.py
+python3 src/main_controller/legacy_national/obstacle_challenge/obs_clockwise.py
 ```
 
 #### 4. Obstacle Avoidance Challenge — Counter Clockwise
 
 ```bash
-python3 src/obs_counterclockwise.py
+python3 src/main_controller/legacy_national/obstacle_challenge/obs_counterclockwise.py
 ```
 
 ### Pre-flight and acceptance test
@@ -803,7 +816,7 @@ Before any competition run or timed trial, the following checklist is completed 
 - [x] Jetson battery connected first; Jetson boots and D455 + BNO055 both enumerate
 - [x] ESP32 flashed and powered independently; prints `ESP32 ready` over serial with motor battery disconnected
 - [x] Motor/actuator battery connected last, only after the above two checks pass
-- [x] TB6612FNG and servo wiring re-checked against pinout (IN1=D26, IN2=D25, PWM=D33, servo=D17)
+- [x] TB6612FNG and servo wiring re-checked against current pinout (IN1=GPIO25, IN2=GPIO26, PWM=GPIO33, servo=GPIO18)
 
 **Sensor and calibration checks**
 - [x] BNO055 calibration status checked (`get_calibration_status()`); saved offsets loaded from `bno055_calibration.json`
