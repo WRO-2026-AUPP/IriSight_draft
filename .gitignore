@@ -1,5 +1,32 @@
 .DS_Store
+__pycache__/
+*.py[cod]
+schemes/source/draw_electrical_diagrams.py
+
+# Internal planning files and working notes: kept locally, never committed.
+# Rules and rubric PDFs (reference copies)
 Documentation-Rubric.pdf
 General-Rules.pdf
 MathWorks-Awards.pdf
+# To-do lists and update plans
 INTERNATIONAL_UPDATE_INPUTS.md
+REMINDERS.md
+other/engineering_journal/source/international_update_phase_plan.md
+other/engineering_journal/source/journal_outline.md
+# Interview records and fact sheet used to write the journal
+other/engineering_journal/source/international_fact_sheet.md
+other/engineering_journal/source/mechanical_working_notes.md
+other/engineering_journal/source/electronics_working_notes.md
+other/engineering_journal/source/ai_model_working_notes.md
+# Blank test sheets: filled in during the robot trials, then published
+other/testing/final_regression_matrix.md
+other/testing/test_log_template.md
+
+# Video files are never pushed; only the YouTube links are committed.
+*.[mM][oO][vV]
+*.[mM][pP]4
+*.[mM]4[vV]
+*.[aA][vV][iI]
+*.[mM][kK][vV]
+*.[wW][eE][bB][mM]
+video/video.md

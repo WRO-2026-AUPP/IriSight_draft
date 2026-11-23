@@ -34,6 +34,7 @@ introduced.
 
 ## Legacy reference
 
-[`firmware/legacy_national/`](firmware/legacy_national/) contains the former
-National firmware. It uses the removed ultrasonic sensors and the old servo
-pin, so it must not be flashed onto the rebuilt robot.
+The former [National Arduino firmware](../../other/legacy_national/src/helper_function/ultrasonic_arduino_v2.ino)
+is preserved inside the complete National repository archive. It uses the
+removed ultrasonic sensors and the old servo pin, so it must not be flashed
+onto the rebuilt robot.

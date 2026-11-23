@@ -1,16 +1,17 @@
 # Engineering Journal
 
-This directory will contain the dated development record and the final exported
-Engineering Journal PDF.
+This directory contains the verified source material and working manuscript
+for IriSight's WRO Future Engineers 2026 International Engineering Journal.
 
-Planned final files:
+## Current publication files
 
-```text
-journal.pdf       Judge-facing export of the complete Engineering Journal
-source/           Editable source files, if they can be published
-```
+| File | Purpose |
+| --- | --- |
+| [`source/engineering_journal.md`](source/engineering_journal.md) | Current readable journal manuscript |
 
-The journal will document the design process, decisions, failed approaches,
-iterations, testing evidence and lessons learned. It will be assembled during
-the Engineering Journal phase from verified team records rather than recreated
+The journal is written in Markdown so that it reads directly on GitHub, with
+working links to the CAD, drawings, photos and code it refers to.
+
+The journal records decisions, failed approaches, revisions, testing evidence
+and lessons learned. Missing evidence is labelled rather than reconstructed
 from assumptions.

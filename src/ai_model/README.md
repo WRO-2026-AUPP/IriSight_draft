@@ -1,180 +1,142 @@
-🤖 AI Model — Object Detection
-====
-This document describes the custom object detection model used by our robot to identify obstacles and the parking marker during the WRO 2026 Future Engineer Obstacle Avoidance round. It covers what the model detects, how it was trained, how it fits into the robot's control pipeline, and how to run it yourself.
+# AI model: traffic-sign detector
 
-## 📦 Overview
+The robot uses one object-detection model to tell red and green traffic signs
+(pillars) apart in the Obstacle Challenge. The camera only says **which colour
+a pillar is and in which direction it lies**; the LiDAR measures the distance.
 
-| | |
-|---|---|
-| **Framework** | [Ultralytics YOLOv8](https://docs.ultralytics.com/) |
-| **Base architecture** | YOLOv8n (nano) |
-| **Weights file** | `best1.pt` |
-| **Input size** | 640 × 640 |
-| **Classes** | 3 — `greenbox`, `redbox`, `xparking` |
-| **Training epochs** | 100 |
-| **Batch size** | 8 |
-| **Optimizer** | Auto (Ultralytics auto-selects SGD/AdamW) |
-| **Initial learning rate** | 0.01 |
-| **Runs on** | NVIDIA Jetson (onboard, real time) |
+## What's in this folder
 
-We chose YOLOv8n specifically because it is the smallest/fastest variant in the YOLOv8 family, which matters a lot on Jetson-class hardware where the depth-processing wall-following loop already consumes a significant share of compute. Nano gives us real-time inference without needing to drop frame rate on the RealSense pipeline.
+```text
+ai_model/
+├── traffic_sign_detector.pt     trained YOLOv8n model (Ultralytics checkpoint)
+├── results/
+│   ├── training_curves.png      validation metrics and losses for all 100 epochs
+│   └── training_results.csv     the same per-epoch numbers as a table
+└── photos/
+    └── red_detect.png           example detection of a red pillar
+```
 
-## 🎯 What the Model Detects
+## How it works
 
-| Class ID | Label | Meaning | Robot Behavior |
-|----------|-------|---------|-----------------|
-| `0` | `greenbox` | Green obstacle pillar | Pass on the **right** side |
-| `1` | `redbox` | Red obstacle pillar | Pass on the **left** side |
-| `2` | `xparking` | Parking lot marker | Align and execute the parking maneuver |
+### The model
 
-The model only needs to distinguish these three classes, so we deliberately kept the dataset and label set narrow — this keeps training fast and inference accuracy very high, since the model isn't wasting capacity on classes it will never see on the competition field.
+Every value below is read from the checkpoint file itself, except the training
+date, which the team confirmed.
 
-## 🏋️ Training Details
+| Item | Value |
+| --- | --- |
+| Framework | Ultralytics YOLOv8, version 8.3.158 |
+| Architecture | YOLOv8n (nano), started from the pretrained `yolov8n.pt` |
+| Classes | 3: `greenbox`, `redbox`, `xparking` |
+| Input size | 640 × 640 |
+| Training | 100 epochs, batch size 8, on a CUDA GPU with mixed precision |
+| Optimizer | `auto`: the stored learning-rate log peaks at 0.0014, the value Ultralytics' automatic setting gives AdamW for a 3-class model |
+| Augmentation | colour jitter (hue 0.015, saturation 0.7, brightness 0.4), shift 0.1, scale 0.5, left-right flip 0.5, mosaic (turned off for the last 10 epochs), RandAugment, random erasing 0.4 |
+| Training time | 8,018 s (about 2 h 14 min) |
+| Saved checkpoint | epoch 97, the epoch with the best validation score |
+| Trained | 25 June 2026, for the National robot |
 
-- **Dataset:** Custom-labeled images collected from our own track builds, captured at multiple distances, angles, and lighting conditions to make the model robust to venue lighting differences on competition day.
-- **Labeling format:** YOLO format (`data.yaml` + per-image `.txt` label files), labeled with bounding boxes around each pillar/marker.
-- **Augmentation:** Standard Ultralytics training-time augmentations (mosaic, HSV jitter, flips, scale/translate) were used to improve generalization from a relatively small custom dataset.
-- **Hardware used for training:** trained on a CUDA GPU (`device=0`) using the Ultralytics training loop.
+YOLOv8n is the smallest YOLOv8 model. It was chosen so that detection runs in
+real time on the Jetson Orin Nano while the LiDAR and control loops run beside it.
 
-### 📊 Validation Performance
+### Validation results
+
+These are the checkpoint's stored validation results at epoch 97:
 
 | Metric | Value |
-|--------|-------|
+| --- | ---: |
 | Precision | 0.997 |
 | Recall | 0.985 |
 | mAP@50 | 0.995 |
-| mAP@50-95 | 0.928 |
+| mAP@50–95 | 0.928 |
 | Box loss | 0.393 |
 | Class loss | 0.172 |
 | DFL loss | 0.791 |
 
-These numbers come directly from the checkpoint's stored training metrics. The high precision/recall reflects the fact that the three target objects are visually distinct (solid red, solid green, and a printed "X" marker) and the dataset was collected under conditions close to the actual competition field.
+![Validation mAP, precision, recall and losses over the 100 training epochs](results/training_curves.png)
 
-## 🗂️ Files
+mAP@50–95 rose from 0.81 after the first epoch to 0.93. All three validation
+losses reached their lowest values at epochs 97–98, so the model was still
+improving slowly at the end of training rather than over-fitting. The full table is in
+[`results/training_results.csv`](results/training_results.csv).
 
-```
-ai_model/
-└── best1.pt      # Trained YOLOv8n weights (best checkpoint by validation fitness)
-```
+### Dataset
 
-`best1.pt` is a full Ultralytics checkpoint (not just raw weights) — it also stores the class names, training args, EMA weights, and training metrics, so it's self-describing and can be loaded directly without needing a separate `data.yaml` at inference time.
+The labelled dataset is public on
+[Roboflow Universe](https://universe.roboflow.com/damian-igwmf/wro-detection-47xs2-ahmqb),
+where the project holds 5,022 images. No public dataset version is currently
+generated, so the exact training, validation and test split used for the
+original local training run could not be independently recovered. The dataset
+was built with a semi-supervised workflow:
 
-## ⚙️ Installation
+1. About 300 images were labelled by hand in CVAT.
+2. The first trained model labelled more images automatically.
+3. Those labels were checked and corrected by hand in CVAT.
+4. The corrected images were added to the training set and the model was
+   trained again.
 
-The model requires the `ultralytics` package (which pulls in `torch` and `torchvision`):
+Labels are YOLO bounding boxes around each pillar or parking marker.
 
-```bash
-pip install ultralytics
-```
+### How the robot uses it
 
-On the Jetson, install the Jetson-optimized PyTorch/TorchVision build first (per NVIDIA's Jetson PyTorch instructions for your JetPack version), then install `ultralytics` on top without letting it reinstall a non-Jetson torch build:
+The two Obstacle Challenge programs in
+[`../main_controller/obstacle_challenge/`](../main_controller/obstacle_challenge/)
+run the model in their own camera thread:
+
+1. The 1 MP USB camera (video device 0) delivers frames 640 px wide.
+2. The model keeps detections with a confidence of at least 0.65
+   (`CAMERA_CONFIDENCE`). Only `redbox` and `greenbox` are used; the current
+   programs do not use `xparking`, because parking uses the rear VL53L0X.
+3. The horizontal position of each box is turned into a direction relative to
+   the LiDAR, using the camera's field of view (`CAMERA_FOV_DEG = 70`) and
+   mounting angle (`CAMERA_YAW_OFFSET_DEG = 0`), as set in the programs.
+4. When a detection lines up with a LiDAR sector, the controller treats that
+   reading as a pillar, not a wall. Detections older than 0.3 s are ignored,
+   and every emergency stop uses the raw LiDAR distances.
+
+Under rule 9.19, the robot must pass a **red** pillar on its **right** and a
+**green** pillar on its **left**. Which side to pass is decided from the pillar
+map, as described in the Obstacle Challenge README.
+
+The model runs unchanged on the International robot with its 1 MP USB camera.
+The example photo in [`photos/red_detect.png`](photos/red_detect.png) was
+recorded with the National robot's camera.
+
+## How to use it
+
+Install NVIDIA's JetPack build of PyTorch on the Jetson first, then
+`ultralytics` without letting it replace that PyTorch build:
 
 ```bash
 pip install ultralytics --no-deps
-pip install opencv-python pyyaml pillow  # remaining ultralytics deps, torch/torchvision already installed
+pip install opencv-python pyyaml pillow
 ```
 
-## ▶️ How to Use It
-
-### 1. Quick test — run inference on an image or folder
+Test the model on an image or a folder of images, with the same confidence as
+the robot:
 
 ```bash
-yolo detect predict model=best1.pt source=path/to/image_or_folder conf=0.5
+yolo detect predict model=traffic_sign_detector.pt source=path/to/images conf=0.65
 ```
 
-This saves annotated output images with bounding boxes under `runs/detect/predict/`.
-
-### 2. Run inference from Python
+Or from Python:
 
 ```python
 from ultralytics import YOLO
 
-# Load the trained model
-model = YOLO("best1.pt")
-
-# Run inference on a single image
-results = model("test_image.jpg", conf=0.5)
-
-# Inspect detections
-for r in results:
-    for box in r.boxes:
-        cls_id = int(box.cls[0])
-        label = model.names[cls_id]       # 'greenbox' / 'redbox' / 'xparking'
-        confidence = float(box.conf[0])
-        x1, y1, x2, y2 = box.xyxy[0].tolist()
-        print(f"{label} ({confidence:.2f}) at [{x1:.0f}, {y1:.0f}, {x2:.0f}, {y2:.0f}]")
+model = YOLO("traffic_sign_detector.pt")
+for box in model("test_image.jpg", conf=0.65)[0].boxes:
+    label = model.names[int(box.cls[0])]       # greenbox / redbox / xparking
+    print(label, round(float(box.conf[0]), 2), box.xyxy[0].tolist())
 ```
 
-### 3. Live inference on the robot (RealSense color stream)
+The obstacle programs load the model from the folder they are run in; see
+[`../main_controller/obstacle_challenge/`](../main_controller/obstacle_challenge/)
+for the run commands.
 
-This is how the model is actually used on the robot during the Obstacle Avoidance round — run continuously on each incoming color frame, with detections then fused against the aligned depth frame to get real-world distance/offset:
+## Version history
 
-```python
-import pyrealsense2 as rs
-import numpy as np
-from ultralytics import YOLO
-
-model = YOLO("best1.pt")
-
-pipeline = rs.pipeline()
-config = rs.config()
-config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
-config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-pipeline.start(config)
-align = rs.align(rs.stream.color)
-
-while True:
-    frames = pipeline.wait_for_frames()
-    frames = align.process(frames)
-    color_frame = frames.get_color_frame()
-    depth_frame = frames.get_depth_frame()
-    if not color_frame or not depth_frame:
-        continue
-
-    color_image = np.asanyarray(color_frame.get_data())
-    results = model(color_image, conf=0.5, verbose=False)
-
-    for r in results[0].boxes:
-        cls_id = int(r.cls[0])
-        label = model.names[cls_id]
-        x1, y1, x2, y2 = map(int, r.xyxy[0])
-        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2   # box center pixel
-
-        # Look up real-world distance at the box center from the depth frame
-        distance_m = depth_frame.get_distance(cx, cy)
-
-        print(f"{label} at {distance_m:.2f}m, pixel center ({cx},{cy})")
-        # -> feed (label, distance_m, cx) into the steering/decision logic
-```
-
-### 4. Useful inference parameters
-
-| Parameter | Purpose | Typical value on our robot |
-|-----------|---------|------------------------------|
-| `conf` | Minimum confidence to keep a detection | `0.5` |
-| `iou` | NMS IoU threshold for overlapping boxes | `0.45` (default) |
-| `imgsz` | Inference resolution | `640` (matches training size) |
-| `device` | Run on GPU (`0`) or CPU (`'cpu'`) | `0` (Jetson GPU) |
-| `half` | FP16 inference for speed | `True` on Jetson |
-
-Example with FP16 for faster Jetson inference:
-
-```python
-results = model(color_image, conf=0.5, imgsz=640, device=0, half=True, verbose=False)
-```
-
-## 🔗 How It Fits Into the Robot's Pipeline
-
-1. **Color frame in →** YOLOv8n runs inference on each RealSense color frame, returning class, confidence, and bounding box for every detected `greenbox`, `redbox`, or `xparking` instance.
-2. **Depth fusion →** the pixel center of each box is looked up in the depth frame to get a real-world distance and lateral offset, turning a 2D detection into an actionable 3D position.
-3. **Decision logic →** the robot computes a steering correction so it passes green pillars on the right and red pillars on the left, layered on top of the existing wall-following PD controller.
-4. **Parking →** once the lap requirement is met, `xparking` detections are used to center and align the robot with the parking bay before triggering the parking sequence.
-5. **Redundancy →** ultrasonic sensors back up the vision pipeline at close range in case a frame is missed or a detection comes in late.
-
-YOLO inference is only enabled during the Obstacle Avoidance round — it's switched off entirely for the Open Challenge, since there are no pillars to detect and disabling it frees up Jetson compute for the depth-based navigation loop.
-
-## ⚠️ Limitations & Notes
-
-- The model was trained on our own track builds; if lighting or pillar material at the competition differs significantly from our test conditions, confidence may drop and `conf` may need re-tuning on the day.
-- `xparking` detection assumes the marker is unobstructed and roughly frontal — steep viewing angles reduce detection reliability, which is why the robot only starts looking for it once it's already aligned along the expected approach path.
-- The model does not track objects across frames (no built-in tracker); temporal smoothing/debouncing of detections is handled in the decision logic layer, not inside the model itself.
+| Date | File | Change | Why we changed it |
+| --- | --- | --- | --- |
+| 25 June 2026 | `best1.pt` | YOLOv8n trained for 100 epochs on the team's pillar dataset | Detect red and green traffic signs and the parking marker on the National robot |
+| 23 November 2026 | `traffic_sign_detector.pt` | Same model, renamed; the weights are unchanged | A name that says what the model does. The National copy keeps its old name in [`other/legacy_national/`](../../other/legacy_national/) |
